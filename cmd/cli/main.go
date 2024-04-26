@@ -1,22 +1,23 @@
 package main
 
 import (
-	"database/sql"
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
-	"regexp"
-	"strings"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/microsoft/go-mssqldb"
+	"tech.thds.migrate/cli"
 )
 
-var batchRegex = regexp.MustCompile(`/\\nGO(\\n)?/gmi`)
-
 func main() {
-	cString := "sqlserver://SA:Password123!@localhost"
-	db, err := sql.Open("sqlserver", cString)
+	if len(os.Args) < 2 {
+		cli.PrintHelp()
+		os.Exit(0)
+	}
+
+	cString := "sqlserver://SA:Password123!@localhost?database=TestDB"
+	db, err := sqlx.Open("sqlserver", cString)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -47,30 +48,19 @@ func main() {
 		fileNames = append(fileNames, file.Name())
 	}
 
-	for _, migrationFile := range fileNames {
-		log.Printf("%s", migrationFile)
-		filePath := filepath.Join(migrationDir, migrationFile)
-		c, err := os.ReadFile(filePath)
-		if err != nil {
-			log.Panicln(err)
+	switch os.Args[1] {
+	case "up":
+		cli.UpAllMigrations(db, fileNames, migrationDir)
+	case "revert":
+		cli.RevertLastMigration(db, fileNames, migrationDir)
+	case "create":
+		if len(os.Args) < 3 {
+			cli.PrintCreateHelp()
+			break
 		}
-		stringContents := string(c)
-		fmt.Printf("Running Migration %s\n\n", migrationFile)
-		runSql(stringContents, db)
-		fmt.Printf("Migration completed")
+		description := os.Args[2]
+		cli.CreateMigrationFile(description, migrationDir)
+	default:
+		cli.PrintHelp()
 	}
-}
-
-func runSql(c string, db *sql.DB) {
-	batches := strings.Split(c, "\nGO")
-	fmt.Printf("batches: %v", batches[0])
-	for _, s := range batches {
-		r, err := db.Exec(s)
-		if err != nil {
-			log.Panic(err)
-		}
-
-		fmt.Printf("Result: %v\n", r)
-	}
-
 }
