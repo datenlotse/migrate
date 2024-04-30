@@ -1,4 +1,4 @@
-module tech.thds.migrate
+module migrate
 
 go 1.21.6
 
