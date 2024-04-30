@@ -8,8 +8,8 @@ import (
 	"sort"
 	"text/tabwriter"
 
+	"github.com/datenlotse/migrate/migration"
 	"github.com/jmoiron/sqlx"
-	"tech.thds.migrate/migration"
 )
 
 func PrintStatus(db *sqlx.DB, migrationFiles []string) {

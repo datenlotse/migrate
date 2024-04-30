@@ -6,9 +6,9 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/datenlotse/migrate/database"
+	"github.com/datenlotse/migrate/migration"
 	"github.com/jmoiron/sqlx"
-	"tech.thds.migrate/database"
-	"tech.thds.migrate/migration"
 )
 
 func RevertLastMigration(db *sqlx.DB, migrationsDir string) {

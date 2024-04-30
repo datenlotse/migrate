@@ -5,9 +5,9 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/datenlotse/migrate/cli"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/microsoft/go-mssqldb"
-	"tech.thds.migrate/cli"
 )
 
 func main() {

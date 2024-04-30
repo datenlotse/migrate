@@ -8,9 +8,9 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/datenlotse/migrate/database"
+	"github.com/datenlotse/migrate/migration"
 	"github.com/jmoiron/sqlx"
-	"tech.thds.migrate/database"
-	"tech.thds.migrate/migration"
 )
 
 func UpAllMigrations(db *sqlx.DB, migrationFiles []string, migrationDir string) {

@@ -1,4 +1,4 @@
-module migrate
+module github.com/datenlotse/migrate
 
 go 1.21.6
 

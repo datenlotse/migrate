@@ -4,7 +4,7 @@ import (
 	"log"
 	"strings"
 
-	"tech.thds.migrate/database"
+	"github.com/datenlotse/migrate/database"
 )
 
 func RunSql(c string, db database.Querier, name string) error {

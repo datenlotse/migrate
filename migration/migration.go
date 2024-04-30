@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"strings"
 
-	"tech.thds.migrate/database"
+	"github.com/datenlotse/migrate/database"
 )
 
 var ErrFailedToSplit = fmt.Errorf("failed to split migration.\nDoes it contain a --THDS:Up and --THDS:Down comment in that order?")
