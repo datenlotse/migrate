@@ -16,7 +16,11 @@ func main() {
 		os.Exit(0)
 	}
 
-	cString := "sqlserver://SA:Password123!@localhost?database=TestDB"
+	cString := os.Getenv("THDS_MIGRATION_CONNECTION_STRING")
+	if cString == "" {
+		panic("Environment variable THDS_MIGRATION_CONNECTION_STRING is not set")
+	}
+
 	db, err := sqlx.Open("sqlserver", cString)
 	if err != nil {
 		log.Panic(err)
