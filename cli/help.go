@@ -7,7 +7,7 @@ import (
 )
 
 func PrintHelp() {
-	w := tabwriter.NewWriter(os.Stdout, 3, 1, 1, ' ', 0)
+	w := tabwriter.NewWriter(os.Stdout, 1, 1, 3, ' ', 0)
 	fmt.Print("THDS migration Tool usage\n\n")
 
 	fmt.Fprintln(w, "create\tCreates a new migration file\t")
