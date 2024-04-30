@@ -21,4 +21,5 @@ func CreateMigrationFile(description string, migrationsDir string) {
 	defer fh.Close()
 
 	fh.Write([]byte("--THDS:Up\n--Implement up part of migration here \n\n--THDS:Down\n--Implement down part of migration here"))
+	fmt.Printf("\u001b[32mMigration File %s created\u001b[0m\n", fileName)
 }

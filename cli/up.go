@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
 	"unicode/utf8"
@@ -15,35 +14,43 @@ import (
 )
 
 func UpAllMigrations(db *sqlx.DB, migrationFiles []string, migrationDir string) {
-	for _, migrationFile := range migrationFiles {
-		filePath := filepath.Join(migrationDir, migrationFile)
-		c, err := os.ReadFile(filePath)
+	exists, err := checkIfMigrationsHistoryTableExists(db)
+	if err != nil {
+		log.Panicf("Error checking if migration history table exists %v", err)
+	}
+
+	if !exists {
+		err := createMigrationsTable(db)
 		if err != nil {
-			log.Panicln(err)
+			log.Panicf("Error creating migration history table: %v", err)
 		}
+	}
+
+	for _, migrationFile := range migrationFiles {
+		migrationName := strings.Split(migrationFile, ".sql")[0]
+
+		filePath := filepath.Join(migrationDir, migrationFile)
 		m, err := migration.FromFile(filePath)
-		fmt.Printf("%p", m)
-		continue
+		if err != nil {
+			// TODO: Cannot parse migration
+			log.Panicf("Cannot parse migration: %s\n%v", migrationName, err)
+		}
 
 		if utf8.RuneCountInString(migrationFile) > 255 {
 			// TODO: Handle file to long error
-			log.Panicf("File name %v to long", migrationFile)
+			log.Panicf("File name %s to long", migrationFile)
 		}
-		migrationName := strings.Split(migrationFile, ".sql")[0]
 		alreadyApplied, err := migrationIsAlreadyApplied(db, migrationName)
 		if err != nil {
-			log.Panic(err)
-			// TODO: Handle cannot get Migration status
+			log.Panicf("Cannot get migration status: %v", err)
 		}
 		if alreadyApplied {
 			continue
 		}
 
-		s := string(c)
-
 		var q database.Querier
 		var tx *sqlx.Tx
-		if !isNoTransactionMigration(s) {
+		if m.IsTransactionMigration {
 			tx, err = db.Beginx()
 			q = tx
 		} else {
@@ -54,10 +61,20 @@ func UpAllMigrations(db *sqlx.DB, migrationFiles []string, migrationDir string) 
 			// TODO: Handle Transaction creation failure
 			log.Panicf("Error creating transaction:\n%v", err)
 		}
-		runSql(s, q, migrationName)
-		err = insertMigrationIntoHistory(q, migrationName)
+
+		err = migration.RunSql(*m.Up, q, migrationName)
 		if err != nil {
-			tx.Rollback()
+			if tx != nil {
+				tx.Rollback()
+			}
+			log.Panicf("Error running migration %s\n%v", migrationName, err)
+		}
+
+		err = migration.InsertMigrationIntoHistory(q, migrationName)
+		if err != nil {
+			if tx != nil {
+				tx.Rollback()
+			}
 			log.Panicf("Migration insertion was not successfull\n%v", migrationName)
 		}
 
@@ -69,8 +86,10 @@ func UpAllMigrations(db *sqlx.DB, migrationFiles []string, migrationDir string) 
 			}
 		}
 
-		fmt.Printf("Migration %s completed", migrationName)
+		fmt.Printf("\u001b[32mMigration %s applied\u001b[0m\n", migrationName)
 	}
+
+	fmt.Println("\n\u001b[32mAll pending migrations applied\u001b[0m")
 }
 
 // Checks if a migration is already applied
@@ -85,31 +104,8 @@ func migrationIsAlreadyApplied(db database.Querier, name string) (bool, error) {
 		return false, err
 	}
 
-	log.Printf("Migration %s already applied -> Skipping", name)
+	fmt.Printf("\u001b[33mMigration %s already applied -> Skipping\u001b[0m\n", name)
 	return true, nil
-}
-
-// Runs the SQL of the provided string. It splits at "GO" into batches
-func runSql(c string, db database.Querier, name string) {
-	fmt.Printf("Running Migration %s\n\n", name)
-	batches := strings.Split(c, "\nGO")
-	for _, s := range batches {
-		r, err := db.Exec(s)
-		if err != nil {
-			log.Panic(err)
-		}
-		fmt.Printf("Result: %v\n", r)
-	}
-}
-
-// Checks if the migration should run as transaction or not
-func isNoTransactionMigration(c string) bool {
-	return strings.HasPrefix(c, "--THDS: No transaction")
-}
-
-func insertMigrationIntoHistory(db database.Querier, migrationName string) error {
-	_, err := db.Exec(`INSERT INTO dbo.MigrationsHistory (MigrationId) VALUES (@p1)`, migrationName)
-	return err
 }
 
 // Checks if the migrations history table exists

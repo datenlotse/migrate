@@ -28,7 +28,6 @@ func main() {
 		log.Panic(err)
 	}
 
-	log.Println("Connected to SQL Server at: " + cString)
 	cwd, err := os.Getwd()
 	if err != nil {
 		log.Panic(err)
@@ -52,7 +51,7 @@ func main() {
 	case "up":
 		cli.UpAllMigrations(db, fileNames, migrationDir)
 	case "revert":
-		cli.RevertLastMigration(db, fileNames, migrationDir)
+		cli.RevertLastMigration(db, migrationDir)
 	case "create":
 		if len(os.Args) < 3 {
 			cli.PrintCreateHelp()
@@ -60,6 +59,12 @@ func main() {
 		}
 		description := os.Args[2]
 		cli.CreateMigrationFile(description, migrationDir)
+	case "status":
+		var fileDirs []string
+		for _, file := range fileNames {
+			fileDirs = append(fileDirs, filepath.Join(migrationDir, file))
+		}
+		cli.PrintStatus(db, fileDirs)
 	default:
 		cli.PrintHelp()
 	}
